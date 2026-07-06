@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>meter — the kill-brake for agent spend</title>
+<meta name="description" content="An out-of-band, fleet-shared budget counter any agent preauthorizes against with one curl. 200 means proceed, 429 means stop.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='44' fill='%23f87171'/%3E%3Crect x='24' y='42' width='52' height='16' rx='4' fill='%230b0e14'/%3E%3C/svg%3E">
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0b0e14; color: #e6e8ee;
+    font: 17px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  a { color: #7dd3fc; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 0 20px; }
+  header { padding: 88px 0 40px; text-align: center; }
+  .fourtwonine {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: clamp(72px, 16vw, 148px); font-weight: 800; letter-spacing: -.04em;
+    background: linear-gradient(180deg, #f87171, #b91c1c);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    line-height: 1;
+  }
+  h1 { font-size: 30px; margin-top: 18px; }
+  .tag { color: #8b93a7; font-size: 19px; margin-top: 8px; }
+  .badges { margin-top: 18px; color: #566074; font-size: 14px; }
+  .badges span { border: 1px solid #232a3b; border-radius: 20px; padding: 3px 12px; margin: 0 4px; }
+  section { padding: 34px 0; }
+  h2 { font-size: 22px; margin-bottom: 14px; color: #fbbf24; }
+  h2 .n { color: #566074; font-family: ui-monospace, Menlo, monospace; margin-right: 8px; }
+  p { color: #b9c0d4; margin-bottom: 12px; }
+  pre {
+    background: #11151f; border: 1px solid #1e2433; border-radius: 12px;
+    padding: 18px 20px; overflow-x: auto; font: 14px/1.7 ui-monospace, "SF Mono", Menlo, monospace;
+    margin: 14px 0;
+  }
+  .c { color: #566074; } .g { color: #34d399; } .r { color: #f87171; } .y { color: #fbbf24; } .b { color: #7dd3fc; }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  th, td { text-align: left; padding: 10px 12px; border-top: 1px solid #1e2433; vertical-align: top; }
+  th { color: #8b93a7; font-weight: 600; border-top: none; }
+  td code, p code, li code { background: #1a2030; border-radius: 5px; padding: 1px 6px; font-size: .88em; font-family: ui-monospace, Menlo, monospace; }
+  .verb { font-family: ui-monospace, Menlo, monospace; color: #fbbf24; white-space: nowrap; }
+  .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 8px; }
+  .step { background: #11151f; border: 1px solid #1e2433; border-radius: 12px; padding: 18px; }
+  .step b { display: block; margin-bottom: 6px; color: #e6e8ee; }
+  .step p { font-size: 15px; margin: 0; }
+  ul { color: #b9c0d4; padding-left: 22px; }
+  li { margin-bottom: 8px; }
+  .family td:first-child { font-weight: 700; white-space: nowrap; }
+  .family td:nth-child(2) { color: #566074; font-family: ui-monospace, Menlo, monospace; }
+  .family tr.me td { color: #fbbf24; }
+  footer { padding: 40px 0 70px; color: #566074; font-size: 14px; text-align: center; }
+</style>
+</head>
+<body>
+
+<header class="wrap">
+  <div class="fourtwonine">429</div>
+  <h1>meter</h1>
+  <p class="tag">The kill-brake for agent spend. 429-as-a-service.</p>
+  <div class="badges"><span>node ≥ 20</span><span>zero deps</span><span>MIT</span><span>port 4187</span></div>
+</header>
+
+<section class="wrap">
+  <h2><span class="n">01</span>Ten seconds of insurance</h2>
+  <p>An out-of-band, fleet-shared budget counter. Every agent preauthorizes with one curl: <b class="g">200 means proceed</b>, <b class="r">429 means stop</b>. Dollars, tokens, calls — the cap doesn't care.</p>
+  <pre><span class="c"># before the overnight run: cap the fleet at $50/day</span>
+curl -X PUT <span class="b">'https://meter.sh/acme-fleet-x7k2?cap=50&amp;period=day&amp;unit=usd'</span>
+
+<span class="c"># in every agent, before anything expensive:</span>
+curl -X POST -d <span class="y">2.50</span> <span class="b">https://meter.sh/acme-fleet-x7k2/spend</span>
+<span class="g">{"topic":"acme-fleet-x7k2","spent":2.5,"cap":50,"remaining":47.5,"period":"day",...}</span>
+
+<span class="c"># when the loop asks for too much:</span>
+<span class="r">429 {"error":"cap exceeded","spent":49,"asked":5,"cap":50,
+     "raise":"https://meter.sh/acme-fleet-x7k2"}</span>
+<span class="c"># ...open that URL on your phone. See what the fleet wants. Tap to raise. Or don't.</span></pre>
+</section>
+
+<section class="wrap">
+  <h2><span class="n">02</span>Make Claude Code obey it</h2>
+  <p>One paste into <code>.claude/settings.json</code> and meter stops being advisory: every expensive tool call preauthorizes first, and a 429 <b>blocks the call</b> — exit 2, with a message telling Claude why. Zero code changes. <code>meter hook &lt;topic&gt;</code> prints it with your URL baked in.</p>
+  <pre>{ "hooks": { "PreToolUse": [ {
+    "matcher": "Bash|Task|WebFetch|WebSearch",
+    "hooks": [ { "type": "command", "command":
+      "code=$(curl -s -o /dev/null -w '%{http_code}' -m 5 -X POST -d 1 \
+        \"${METER_URL:-https://meter.sh}/claude/spend\"); \
+       if [ \"$code\" = \"429\" ]; then \
+         echo \"meter: claude is over budget — raise the cap: ${METER_URL:-https://meter.sh}/claude\" >&2; \
+         exit 2; fi" } ] } ] } }</pre>
+</section>
+
+<section class="wrap">
+  <h2><span class="n">03</span>How it holds</h2>
+  <div class="steps">
+    <div class="step"><b>Out-of-band</b><p>Not a proxy. No traffic reroutes through it — agents ask permission, which is one HTTP call, not an architecture.</p></div>
+    <div class="step"><b>Fleet-shared</b><p>One counter for every process on every machine in every language. Atomic check-and-increment; a 429 commits nothing.</p></div>
+    <div class="step"><b>Human doorbell</b><p>The 429 carries a raise URL. A live status page with a big remaining bar and raise buttons — the console is a browser tab.</p></div>
+  </div>
+</section>
+
+<section class="wrap">
+  <h2><span class="n">04</span>The whole API</h2>
+  <table>
+    <tr><th>call</th><th>does</th></tr>
+    <tr><td class="verb">POST /{topic}/spend</td><td>Preauthorize: body is a number or <code>{"amount", "note"}</code>. 200 fits · 429 doesn't (nothing committed). <code>?dry=1</code> checks only.</td></tr>
+    <tr><td class="verb">PUT /{topic}</td><td>Config: <code>{"cap": 50, "period": "day|month|total", "unit": "usd"}</code>. Query params work too.</td></tr>
+    <tr><td class="verb">GET /{topic}</td><td>Status JSON for curl, live page for browsers. <code>?wait=30</code> long-polls.</td></tr>
+    <tr><td class="verb">POST /{topic}/raise</td><td><code>{"by": 10}</code> or <code>{"to": 100}</code> — lift the cap.</td></tr>
+    <tr><td class="verb">GET /{topic}/log</td><td>Recent spends <code>{at, amount, note, allowed}</code>, newest first.</td></tr>
+    <tr><td class="verb">GET /{topic}/sse</td><td>Live spend events, SSE.</td></tr>
+  </table>
+  <p style="margin-top:12px">Topics are created by first use and named by you — an unguessable name is the access model. Self-hosters add <code>--token</code> to guard cap and raise; <b>spend never needs a token</b>. Brakes must not need keys.</p>
+</section>
+
+<section class="wrap">
+  <h2><span class="n">05</span>Run yours</h2>
+  <pre>npx meter-sh serve                      <span class="c"># http://0.0.0.0:4187, in-memory</span>
+npx meter-sh serve --data-dir ./data    <span class="c"># JSONL, replayed on boot</span>
+npx meter-sh serve --token s3cret       <span class="c"># guard cap/raise</span></pre>
+  <p>Zero dependencies, one <code>node:http</code> process, identical API to the hosted instance. The CLI (<code>meter spend / status / cap / raise / log / hook / serve</code>) is sugar over the same six URLs.</p>
+</section>
+
+<section class="wrap">
+  <h2><span class="n">06</span>Straight talk</h2>
+  <ul>
+    <li>meter only stops agents that <em>check it</em>. The Claude Code hook closes that gap for tool calls; for the hard stop, pair with <b>bigred</b>.</li>
+    <li>Amounts are self-reported estimates — meter counts claims, not bills. The discipline of estimating before spending is most of the value.</li>
+    <li>Topic names are capability-by-obscurity. Good insurance, not cryptography.</li>
+  </ul>
+</section>
+
+<section class="wrap">
+  <h2><span class="n">07</span>The family</h2>
+  <p>meter is one of ten agent-infra primitives. Same stack, same idioms, one curl each.</p>
+  <table class="family">
+    <tr><td>gate</td><td>4180</td><td>ntfy tells you things. gate asks you things.</td></tr>
+    <tr><td>bigred</td><td>4181</td><td>The big red button for your agent fleet.</td></tr>
+    <tr><td>trail</td><td>4182</td><td>The flight recorder for agent runs.</td></tr>
+    <tr><td>slate</td><td>4183</td><td>The blackboard from the multi-agent papers, as a URL.</td></tr>
+    <tr><td>relay</td><td>4184</td><td>The work queue your agents can provision themselves.</td></tr>
+    <tr><td>mutex</td><td>4185</td><td>flock(1) for agents that live on different machines.</td></tr>
+    <tr><td>quorum</td><td>4186</td><td>Coordination for agents that do not share a parent process.</td></tr>
+    <tr class="me"><td>meter</td><td>4187</td><td>The kill-brake for agent spend. 429-as-a-service.</td></tr>
+    <tr><td>stash</td><td>4188</td><td>ntfy moves signals. stash moves bytes.</td></tr>
+    <tr><td>tally</td><td>4189</td><td>StatHat reborn as ntfy. Three months too late — or right on time.</td></tr>
+  </table>
+</section>
+
+<footer class="wrap">
+  MIT · zero dependencies · <code>curl</code> is the SDK
+</footer>
+
+</body>
+</html>

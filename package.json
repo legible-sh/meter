@@ -1,0 +1,38 @@
+{
+  "name": "meter-sh",
+  "version": "0.1.0",
+  "description": "The kill-brake for agent spend. 429-as-a-service.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Myles Krecny",
+  "bin": {
+    "meter": "bin/meter.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test",
+    "start": "node bin/meter.mjs serve",
+    "dev": "node bin/meter.mjs serve --data-dir .data"
+  },
+  "files": [
+    "bin",
+    "src",
+    "examples",
+    "site",
+    "README.md",
+    "CONCEPT.md",
+    "AGENTS.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "agents",
+    "budget",
+    "rate-limit",
+    "429",
+    "spend",
+    "curl",
+    "kill-switch"
+  ]
+}

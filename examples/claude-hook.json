@@ -1,0 +1,16 @@
+{
+  "//": "Paste the hooks block into .claude/settings.json (project) or ~/.claude/settings.json (global). Every Bash/Task/WebFetch/WebSearch call preauthorizes 1 against the 'claude' topic; a 429 blocks the tool call (exit 2) and the stderr line tells Claude why it stopped. Set the cap first: curl -X PUT '$METER_URL/claude?cap=500&period=day&unit=calls'. Generate a customized copy with: meter hook <topic> --url <server>.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Task|WebFetch|WebSearch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "code=$(curl -s -o /dev/null -w '%{http_code}' -m 5 -X POST -d 1 \"${METER_URL:-https://meter.sh}/claude/spend\"); if [ \"$code\" = \"429\" ]; then echo \"meter: claude is over budget — raise the cap: ${METER_URL:-https://meter.sh}/claude\" >&2; exit 2; fi"
+          }
+        ]
+      }
+    ]
+  }
+}
