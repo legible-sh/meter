@@ -2,7 +2,7 @@
 
 ## Project state
 
-meter is complete and tested: a zero-dependency Node (>= 20, ESM) HTTP server + CLI implementing a fleet-shared budget counter. All documented endpoints exist; all README examples work as written against a local instance. 42 test cases (233 assertions) pass with `npm test`. Default port 4187 (part of the ten-sibling agent-infra family; see README footer).
+meter is complete and tested: a zero-dependency Node (>= 20, ESM) HTTP server + CLI implementing a fleet-shared budget counter. All documented endpoints exist; all README examples work as written against a local instance. 42 test cases (233 assertions) pass with `npm test`. Default port 4187 (part of the ten-sibling legible family; see README footer).
 
 ## Important files
 

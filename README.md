@@ -126,7 +126,7 @@ Planned for the hosted instance, never gating the core verbs — self-host stays
 
 ## The family
 
-meter is one of ten agent-infra primitives — same stack, same idioms, one curl each:
+meter is one of ten legible primitives — same stack, same idioms, one curl each:
 
 | | port | |
 |---|---|---|
