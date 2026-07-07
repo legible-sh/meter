@@ -12,14 +12,14 @@ An out-of-band budget counter your whole fleet preauthorizes against with one cu
 
 ```sh
 # before the overnight run — 10 seconds of insurance:
-curl -X PUT 'https://meter.sh/acme-fleet-x7k2?cap=50&period=day&unit=usd'
+curl -X PUT 'https://meter.legible.sh/acme-fleet-x7k2?cap=50&period=day&unit=usd'
 
 # in every agent, before anything expensive:
-curl -X POST -d 2.50 https://meter.sh/acme-fleet-x7k2/spend
+curl -X POST -d 2.50 https://meter.legible.sh/acme-fleet-x7k2/spend
 # 200 → proceed · 429 → stop (the body carries a raise URL for your phone)
 ```
 
-> meter.sh isn't live yet. Everything in this README works today against your own instance: `npx meter-sh serve`, then swap `https://meter.sh` for `http://localhost:4187`.
+> meter.legible.sh isn't live yet. Everything in this README works today against your own instance: `npx meter-sh serve`, then swap `https://meter.legible.sh` for `http://localhost:4187`.
 
 ## Make Claude Code obey it
 
@@ -34,7 +34,7 @@ This is the move. One paste into `.claude/settings.json` and meter stops being a
         "hooks": [
           {
             "type": "command",
-            "command": "code=$(curl -s -o /dev/null -w '%{http_code}' -m 5 -X POST -d 1 \"${METER_URL:-https://meter.sh}/claude/spend\"); if [ \"$code\" = \"429\" ]; then echo \"meter: claude is over budget — raise the cap: ${METER_URL:-https://meter.sh}/claude\" >&2; exit 2; fi"
+            "command": "code=$(curl -s -o /dev/null -w '%{http_code}' -m 5 -X POST -d 1 \"${METER_URL:-https://meter.legible.sh}/claude/spend\"); if [ \"$code\" = \"429\" ]; then echo \"meter: claude is over budget — raise the cap: ${METER_URL:-https://meter.legible.sh}/claude\" >&2; exit 2; fi"
           }
         ]
       }
@@ -43,7 +43,7 @@ This is the move. One paste into `.claude/settings.json` and meter stops being a
 }
 ```
 
-Set the cap (`curl -X PUT 'https://meter.sh/claude?cap=500&period=day&unit=calls'`), export `METER_URL` if you self-host, done. `meter hook <topic>` prints this snippet with your topic and URL baked in; [examples/claude-hook.json](examples/claude-hook.json) is the paste-ready file, and [examples/loop-guard.sh](examples/loop-guard.sh) is the same idea for any bash loop.
+Set the cap (`curl -X PUT 'https://meter.legible.sh/claude?cap=500&period=day&unit=calls'`), export `METER_URL` if you self-host, done. `meter hook <topic>` prints this snippet with your topic and URL baked in; [examples/claude-hook.json](examples/claude-hook.json) is the paste-ready file, and [examples/loop-guard.sh](examples/loop-guard.sh) is the same idea for any bash loop.
 
 ## Why
 
@@ -69,14 +69,14 @@ Paste this into your CLAUDE.md / AGENTS.md (swap in your topic and URL):
 ```
 ## Budget: meter
 Before anything expensive (API call, batch job, paid tool), preauthorize:
-  curl -X POST -d '{"amount": 0.25, "note": "what this is for"}' https://meter.sh/TOPIC/spend
+  curl -X POST -d '{"amount": 0.25, "note": "what this is for"}' https://meter.legible.sh/TOPIC/spend
 - 200 → proceed. Body has {spent, cap, remaining}.
 - 429 → STOP. Do not retry, batch, or route around it. Report the "raise"
   URL from the body to the human — that page is where they lift the cap.
 - Spend in the budget's units (dollars, tokens, calls — check GET /TOPIC).
 - Estimate high when unsure. A denied preauthorization costs nothing.
 - Check without committing: POST .../spend?dry=1
-- Current state: curl https://meter.sh/TOPIC · recent history: /TOPIC/log
+- Current state: curl https://meter.legible.sh/TOPIC · recent history: /TOPIC/log
 ```
 
 ## Self-hosting
@@ -92,7 +92,7 @@ Or clone and run: `git clone`, `npm test`, `npm start`. Zero dependencies; the s
 
 ## CLI
 
-The CLI is sugar over the same HTTP API (base URL: `--url` flag, then `$METER_URL`, then `https://meter.sh`).
+The CLI is sugar over the same HTTP API (base URL: `--url` flag, then `$METER_URL`, then `https://meter.legible.sh`).
 
 ```sh
 meter cap ops 50 --period day --unit usd   # PUT /ops

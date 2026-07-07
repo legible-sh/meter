@@ -11,7 +11,7 @@ meter is complete and tested: a zero-dependency Node (>= 20, ESM) HTTP server + 
 - `src/store.mjs` — `Store`: in-memory `Map` of topics + optional JSONL persistence (`--data-dir` → `<dir>/meter.jsonl`, appendFileSync per event, replayed on boot) + pub/sub (`subscribe`/`emit`) powering SSE and long-poll. Three event kinds: `spend`, `config`, `raise`. Replay recomputes period windows from each event's `at`, so old spends don't count against the current window.
 - `src/server.mjs` — routing only; all state changes go through the store, all validation through budget.mjs. `createServer(options)` returns a `node:http` server (options: `dataDir`, `token`, `baseUrl`, `store`); `server.store` is exposed for tests/embedding.
 - `src/page.mjs` — the HTML status page (returned for `GET /{topic}` with `Accept: text/html`). Self-contained client of the JSON API + `/sse`.
-- `src/cli.mjs` — CLI verbs (`spend|status|cap|raise|log|hook|serve|help`). Exit codes: 0 ok, 1 error, 2 over-cap (the hook contract). Base URL: `--url` > `METER_URL` > `https://meter.sh`. Token: `--token` > `METER_TOKEN`.
+- `src/cli.mjs` — CLI verbs (`spend|status|cap|raise|log|hook|serve|help`). Exit codes: 0 ok, 1 error, 2 over-cap (the hook contract). Base URL: `--url` > `METER_URL` > `https://meter.legible.sh`. Token: `--token` > `METER_TOKEN`.
 - `bin/meter.mjs` — shebang shim.
 - `test/*.test.mjs` — six files: pure domain, HTTP surface, auth on/off, persistence/replay, end-to-end flow + SSE + long-poll, CLI subprocess (including `serve`). `test/helpers.mjs` boots real servers on port 0.
 - `examples/` — `walkthrough.sh` (full curl tour), `loop-guard.sh` (spend-or-exit for bash loops), `claude-hook.json` (paste-ready Claude Code PreToolUse hook).

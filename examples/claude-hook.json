@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "code=$(curl -s -o /dev/null -w '%{http_code}' -m 5 -X POST -d 1 \"${METER_URL:-https://meter.sh}/claude/spend\"); if [ \"$code\" = \"429\" ]; then echo \"meter: claude is over budget — raise the cap: ${METER_URL:-https://meter.sh}/claude\" >&2; exit 2; fi"
+            "command": "code=$(curl -s -o /dev/null -w '%{http_code}' -m 5 -X POST -d 1 \"${METER_URL:-https://meter.legible.sh}/claude/spend\"); if [ \"$code\" = \"429\" ]; then echo \"meter: claude is over budget — raise the cap: ${METER_URL:-https://meter.legible.sh}/claude\" >&2; exit 2; fi"
           }
         ]
       }

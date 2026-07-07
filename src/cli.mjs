@@ -1,5 +1,5 @@
 // The CLI: a thin client over the HTTP API, plus `meter serve`.
-// Base URL resolution: --url flag > METER_URL env > https://meter.sh
+// Base URL resolution: --url flag > METER_URL env > https://meter.legible.sh
 // Exit codes: 0 ok · 1 error · 2 over cap (matches the hook contract).
 
 import { createServer } from './server.mjs';
@@ -16,14 +16,14 @@ usage:
   meter serve [--port 4187] [--host 0.0.0.0] [--data-dir D] [--token T] [--base-url U]
 
 options:
-  --url <base>     server to talk to (default: $METER_URL, then https://meter.sh)
+  --url <base>     server to talk to (default: $METER_URL, then https://meter.legible.sh)
   --token <t>      bearer token for cap/raise on token-guarded servers ($METER_TOKEN)
 `;
 
 export async function main(argv) {
   const { positionals, flags } = parseArgs(argv);
   const [command, topic] = positionals;
-  const base = (flags.url || process.env.METER_URL || 'https://meter.sh').replace(/\/+$/, '');
+  const base = (flags.url || process.env.METER_URL || 'https://meter.legible.sh').replace(/\/+$/, '');
   const token = flags.token || process.env.METER_TOKEN || null;
 
   try {

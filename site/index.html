@@ -68,15 +68,15 @@
   <h2><span class="n">01</span>Ten seconds of insurance</h2>
   <p>An out-of-band, fleet-shared budget counter. Every agent preauthorizes with one curl: <b class="g">200 means proceed</b>, <b class="r">429 means stop</b>. Dollars, tokens, calls — the cap doesn't care.</p>
   <pre><span class="c"># before the overnight run: cap the fleet at $50/day</span>
-curl -X PUT <span class="b">'https://meter.sh/acme-fleet-x7k2?cap=50&amp;period=day&amp;unit=usd'</span>
+curl -X PUT <span class="b">'https://meter.legible.sh/acme-fleet-x7k2?cap=50&amp;period=day&amp;unit=usd'</span>
 
 <span class="c"># in every agent, before anything expensive:</span>
-curl -X POST -d <span class="y">2.50</span> <span class="b">https://meter.sh/acme-fleet-x7k2/spend</span>
+curl -X POST -d <span class="y">2.50</span> <span class="b">https://meter.legible.sh/acme-fleet-x7k2/spend</span>
 <span class="g">{"topic":"acme-fleet-x7k2","spent":2.5,"cap":50,"remaining":47.5,"period":"day",...}</span>
 
 <span class="c"># when the loop asks for too much:</span>
 <span class="r">429 {"error":"cap exceeded","spent":49,"asked":5,"cap":50,
-     "raise":"https://meter.sh/acme-fleet-x7k2"}</span>
+     "raise":"https://meter.legible.sh/acme-fleet-x7k2"}</span>
 <span class="c"># ...open that URL on your phone. See what the fleet wants. Tap to raise. Or don't.</span></pre>
 </section>
 
@@ -87,9 +87,9 @@ curl -X POST -d <span class="y">2.50</span> <span class="b">https://meter.sh/acm
     "matcher": "Bash|Task|WebFetch|WebSearch",
     "hooks": [ { "type": "command", "command":
       "code=$(curl -s -o /dev/null -w '%{http_code}' -m 5 -X POST -d 1 \
-        \"${METER_URL:-https://meter.sh}/claude/spend\"); \
+        \"${METER_URL:-https://meter.legible.sh}/claude/spend\"); \
        if [ \"$code\" = \"429\" ]; then \
-         echo \"meter: claude is over budget — raise the cap: ${METER_URL:-https://meter.sh}/claude\" >&2; \
+         echo \"meter: claude is over budget — raise the cap: ${METER_URL:-https://meter.legible.sh}/claude\" >&2; \
          exit 2; fi" } ] } ] } }</pre>
 </section>
 
