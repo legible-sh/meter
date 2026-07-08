@@ -244,6 +244,53 @@ test('root: plain-text usage for curl, CORS on by default', async () => {
   }
 });
 
+test('agent discovery: /README.md and /llms.txt', async () => {
+  const { url, close } = await boot();
+  try {
+    const readme = await req(`${url}/README.md`);
+    assert.equal(readme.status, 200);
+    assert.match(readme.headers.get('content-type'), /text\/markdown/);
+    assert.match(readme.text, /meter/);
+    assert.match(readme.text, /The whole API/, 'serves the real README, contract and all');
+
+    const llms = await req(`${url}/llms.txt`);
+    assert.equal(llms.status, 200);
+    assert.match(llms.headers.get('content-type'), /text\/plain/);
+    assert.match(llms.text, /\/README\.md/, 'llms.txt points at the README');
+    assert.match(llms.text, /kill-brake/);
+
+    const head = await fetch(`${url}/llms.txt`, { method: 'HEAD' });
+    assert.equal(head.status, 200);
+    assert.equal(await head.text(), '', 'HEAD sends headers only');
+
+    const post = await req(`${url}/README.md`, { method: 'POST', body: 'x' });
+    assert.equal(post.status, 405);
+    assert.equal(post.body.code, 'method_not_allowed');
+    assert.match(post.body.hint, /GET \/README\.md/, '405 hint shows the correct call');
+  } finally {
+    await close();
+  }
+});
+
+test('root negotiates: Accept text/markdown gets the README, */* keeps the help text', async () => {
+  const { url, close } = await boot();
+  try {
+    const md = await req(url + '/', { headers: { accept: 'text/markdown' } });
+    assert.equal(md.status, 200);
+    assert.match(md.headers.get('content-type'), /text\/markdown/);
+    assert.match(md.text, /The whole API/, 'markdown clients get the README');
+
+    const plain = await req(url + '/', { headers: { accept: '*/*' } });
+    assert.equal(plain.status, 200);
+    assert.match(plain.headers.get('content-type'), /text\/plain/);
+    assert.match(plain.text, /POST \/\{topic\}\/spend/, 'plain curl keeps the usage text');
+    assert.match(plain.text, /\/README\.md/, 'usage text mentions the docs routes');
+    assert.match(plain.text, /\/llms\.txt/);
+  } finally {
+    await close();
+  }
+});
+
 test('--base-url is used for raise URLs in 429s', async () => {
   const { url, close } = await boot({ baseUrl: 'https://meter.example.com/' });
   try {

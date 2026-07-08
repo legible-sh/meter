@@ -59,6 +59,7 @@ Runaway agent spend is a genre now: the $400 overnight run, the LangChain loop t
 | `POST` | `/{topic}/raise` | `{"by": 10}` or `{"to": 100}` — lift (or set) the cap. Guarded by `--token` if set. |
 | `GET` | `/{topic}/log` | Recent spend entries `{at, amount, note, allowed}`, newest first (`?limit=50`). |
 | `GET` | `/{topic}/sse` | Live spend events (SSE, named events, heartbeats every 25s). The status page runs on this. |
+| `GET` | `/README.md` · `/llms.txt` | This document as `text/markdown`, and a tiny [llms.txt](https://llmstxt.org) index. `GET /` with `Accept: text/markdown` returns the README too. Never token-gated. |
 
 Topics match `[a-zA-Z0-9_-]{1,64}` and are created by first use — an unguessable name is the access model, so pick a good one. First spend on a fresh topic runs in track-only mode (no cap; the response says so). Period counters reset on UTC boundaries. Denied spends are logged but never counted. Errors are JSON `{"error": "...", "code": "...", "hint": "..."}` with honest status codes — the `hint` is the correct next request, so you never have to leave the response to fix a call. 429s also carry a `Retry-After` header when the window resets on its own.
 

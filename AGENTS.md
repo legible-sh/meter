@@ -2,7 +2,7 @@
 
 ## Project state
 
-meter is complete and tested: a zero-dependency Node (>= 20, ESM) HTTP server + CLI implementing a fleet-shared budget counter. All documented endpoints exist; all README examples work as written against a local instance. 43 test cases (250 assertions) pass with `npm test`. Default port 4187 (part of the ten-sibling legible family; see README footer).
+meter is complete and tested: a zero-dependency Node (>= 20, ESM) HTTP server + CLI implementing a fleet-shared budget counter. All documented endpoints exist; all README examples work as written against a local instance. 46 test cases (273 assertions) pass with `npm test`. Default port 4187 (part of the ten-sibling legible family; see README footer).
 
 ## Important files
 
@@ -52,7 +52,7 @@ open http://127.0.0.1:4187/t                          # live status page
 ## Known gaps
 
 - No TTL/idle eviction of topics — `MAX_TOPICS` (10,000) is the only backstop. Fine self-hosted; the hosted instance will need eviction (see CONCEPT.md, countapi risk).
-- No `DELETE /{topic}` — the API surface is exactly the six documented endpoints. Deleting means restarting without the data dir (or editing `meter.jsonl`).
+- No `DELETE /{topic}` — the API surface is exactly the documented endpoints: the six topic endpoints plus the ungated discovery routes (`GET /README.md`, `GET /llms.txt`, and `GET /` content negotiation: browsers get the site, `Accept: text/markdown` gets the README, curl gets plain-text usage). Deleting means restarting without the data dir (or editing `meter.jsonl`).
 - JSONL is append-only with no compaction; the file grows one line per committed event. Harmless at fleet scale; compaction would be a boot-time rewrite if ever needed.
 - Persistence writes are `appendFileSync` — durable and simple, and a measured non-issue at intended load (spends are preauthorizations, not high-frequency telemetry).
 - The hook snippet counts calls (spends `1` per tool call). Counting *dollars* from a hook would need per-call cost estimates, which Claude Code does not expose to hooks.

@@ -61,6 +61,18 @@ test('with --token: spend, status, log, sse stay open', async () => {
   }
 });
 
+test('with --token: /README.md and /llms.txt stay open', async () => {
+  const { url, close } = await boot({ token: TOKEN });
+  try {
+    const readme = await req(`${url}/README.md`);
+    assert.equal(readme.status, 200, 'discovery docs never need the token');
+    const llms = await req(`${url}/llms.txt`);
+    assert.equal(llms.status, 200);
+  } finally {
+    await close();
+  }
+});
+
 test('without --token: everything is open', async () => {
   const { url, close } = await boot();
   try {

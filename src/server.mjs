@@ -7,8 +7,10 @@
 //   POST /{topic}/raise   {by} or {to}                            [token]
 //   GET  /{topic}/log     recent spend entries, newest first
 //   GET  /{topic}/sse     live spend events (SSE, 25s heartbeats)
+//   GET  /README.md, /llms.txt   agent-discovery docs (never token-gated)
 
 import http from 'node:http';
+import { readFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -30,7 +32,17 @@ import {
   TOPIC_PATTERN,
 } from './limits.mjs';
 
-const SITE_INDEX = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'site', 'index.html');
+const PACKAGE_ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
+const SITE_INDEX = path.join(PACKAGE_ROOT, 'site', 'index.html');
+
+// Read once at startup; a stripped install without the file just loses GET /README.md.
+const README = (() => {
+  try {
+    return readFileSync(path.join(PACKAGE_ROOT, 'README.md'), 'utf8');
+  } catch {
+    return null;
+  }
+})();
 
 const USAGE = `meter — the kill-brake for agent spend. 429-as-a-service.
 
@@ -44,6 +56,20 @@ const USAGE = `meter — the kill-brake for agent spend. 429-as-a-service.
   GET  /{topic}/sse      live spend events (SSE)
 
 Topics are created by first use and match [a-zA-Z0-9_-]{1,64} — pick an unguessable name.
+Full docs: GET /README.md (the whole contract, markdown) · GET /llms.txt (agent index)
+`;
+
+const LLMS_TXT = `# meter
+
+> The kill-brake for agent spend. 429-as-a-service.
+
+A zero-dependency HTTP primitive: the URL is the API, curl is the SDK, the whole
+contract fits in one screen (GET / returns it as plain text).
+
+## Docs
+
+- [README](/README.md): the full contract — API table, examples, self-hosting
+- [Family index](https://legible.sh/llms.txt): meter is one of the legible primitives
 `;
 
 export function createServer(options = {}) {
@@ -75,6 +101,9 @@ async function route(req, res, ctx) {
   if (url.pathname === '/favicon.ico') {
     res.writeHead(204);
     return void res.end();
+  }
+  if (url.pathname === '/README.md' || url.pathname === '/llms.txt') {
+    return docs(req, res, url.pathname);
   }
 
   const match = url.pathname.match(/^\/([^/]+)(?:\/([^/]+))?$/);
@@ -136,7 +165,25 @@ async function root(req, res) {
       // fall through to text
     }
   }
+  if (README !== null && /text\/markdown/.test(req.headers.accept || '')) {
+    return void sendMarkdown(res, README);
+  }
   sendText(res, 200, USAGE);
+}
+
+// GET /README.md and GET /llms.txt — the agent-discovery surface. Never token-gated,
+// same as the landing page: docs must be readable before anyone has credentials.
+function docs(req, res, pathname) {
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    throw apiError(405, 'method_not_allowed', `use GET on ${pathname}`,
+      `docs are read-only — GET ${pathname} needs no body or token`);
+  }
+  if (pathname === '/llms.txt') return void sendText(res, 200, LLMS_TXT);
+  if (README === null) {
+    throw apiError(404, 'not_found', 'README.md is missing from this install',
+      'the same document lives at https://github.com/legible-sh/meter');
+  }
+  sendMarkdown(res, README);
 }
 
 async function postSpend(req, res, ctx, name, url, base) {
@@ -342,6 +389,11 @@ function sendJson(res, status, obj) {
 
 function sendText(res, status, text) {
   res.writeHead(status, { 'content-type': 'text/plain; charset=utf-8' });
+  res.end(text);
+}
+
+function sendMarkdown(res, text) {
+  res.writeHead(200, { 'content-type': 'text/markdown; charset=utf-8' });
   res.end(text);
 }
 
