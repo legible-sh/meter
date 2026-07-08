@@ -8,9 +8,13 @@ import {
   PERIODS,
 } from './limits.mjs';
 
-export function apiError(status, code, message) {
-  return Object.assign(new Error(message), { status, code });
+// Errors carry an optional `hint` — the correct next request, so a caller
+// never has to leave the response to fix their mistake.
+export function apiError(status, code, message, hint = null) {
+  return Object.assign(new Error(message), { status, code, ...(hint ? { hint } : {}) });
 }
+
+const AMOUNT_HINT = 'send the amount as the raw body, e.g. -d 2.50 or -d \'{"amount": 2.5, "note": "embedding batch"}\'';
 
 // Amounts are rounded to 6 decimal places on every commit so floating-point
 // dust never wedges a budget at 49.999999994.
@@ -83,7 +87,7 @@ export function fits(topic, amount, at = Date.now()) {
 // (2.5, or {"amount": 2.5, "note": "embedding batch"}).
 export function parseAmount(raw) {
   const s = String(raw ?? '').trim();
-  if (!s) throw apiError(400, 'bad_amount', 'body must be a number or JSON {"amount": n, "note"?: "..."}');
+  if (!s) throw apiError(400, 'bad_amount', 'body must be a number or JSON {"amount": n, "note"?: "..."}', AMOUNT_HINT);
   let amount;
   let note = null;
   if (/^[-+0-9.eE]+$/.test(s) && !Number.isNaN(Number(s))) {
@@ -93,7 +97,7 @@ export function parseAmount(raw) {
     try {
       parsed = JSON.parse(s);
     } catch {
-      throw apiError(400, 'bad_amount', 'body must be a number or JSON {"amount": n, "note"?: "..."}');
+      throw apiError(400, 'bad_amount', 'body must be a number or JSON {"amount": n, "note"?: "..."}', AMOUNT_HINT);
     }
     if (typeof parsed === 'number') {
       amount = parsed;
@@ -101,16 +105,18 @@ export function parseAmount(raw) {
       amount = parsed.amount;
       note = parsed.note ?? null;
     } else {
-      throw apiError(400, 'bad_amount', 'body must be a number or JSON {"amount": n, "note"?: "..."}');
+      throw apiError(400, 'bad_amount', 'body must be a number or JSON {"amount": n, "note"?: "..."}', AMOUNT_HINT);
     }
   }
   if (typeof amount !== 'number' || !Number.isFinite(amount)) {
-    throw apiError(400, 'bad_amount', 'amount must be a finite number');
+    throw apiError(400, 'bad_amount', 'amount must be a finite number', AMOUNT_HINT);
   }
   if (amount <= 0) throw apiError(400, 'bad_amount', 'amount must be greater than 0');
   if (amount > MAX_AMOUNT) throw apiError(400, 'bad_amount', `amount must be at most ${MAX_AMOUNT}`);
   if (note != null) {
-    if (typeof note !== 'string') throw apiError(400, 'bad_note', 'note must be a string');
+    if (typeof note !== 'string') {
+      throw apiError(400, 'bad_note', 'note must be a string', 'quote it: {"amount": 2.5, "note": "embedding batch"}');
+    }
     note = note.slice(0, MAX_NOTE_LENGTH);
   }
   return { amount: round6(amount), note };
@@ -128,7 +134,8 @@ export function parseConfig(input) {
     } else {
       const cap = typeof input.cap === 'number' ? input.cap : Number(input.cap);
       if (typeof input.cap === 'boolean' || String(input.cap).trim() === '' || !Number.isFinite(cap) || cap < 0 || cap > MAX_AMOUNT) {
-        throw apiError(400, 'bad_cap', `cap must be a number between 0 and ${MAX_AMOUNT} (or null to clear)`);
+        throw apiError(400, 'bad_cap', `cap must be a number between 0 and ${MAX_AMOUNT} (or null to clear)`,
+          'send a bare number, e.g. {"cap": 50} or ?cap=50 — clear with null (JSON) or cap=none (query)');
       }
       out.cap = round6(cap);
     }
@@ -148,7 +155,10 @@ export function parseConfig(input) {
     }
     out.unit = unit;
   }
-  if (!any) throw apiError(400, 'bad_config', 'nothing to set — provide cap, period, and/or unit');
+  if (!any) {
+    throw apiError(400, 'bad_config', 'nothing to set — provide cap, period, and/or unit',
+      'e.g. PUT /{topic} with {"cap": 50, "period": "day", "unit": "usd"} — or query params: ?cap=50&period=day');
+  }
   return out;
 }
 
@@ -162,7 +172,8 @@ export function parseRaise(input, currentCap) {
       throw apiError(400, 'bad_raise', '"by" must be a positive number');
     }
     if (currentCap == null) {
-      throw apiError(400, 'no_cap', 'no cap set — raise with {"to": n} or PUT a cap first');
+      throw apiError(400, 'no_cap', 'no cap set — raise with {"to": n} or PUT a cap first',
+        'POST {"to": 100} here to set a first cap, or PUT /{topic} with {"cap": 50, "period": "day", "unit": "usd"}');
     }
     return round6(Math.min(currentCap + by, MAX_AMOUNT));
   }

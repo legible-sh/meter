@@ -78,7 +78,8 @@ async function cmdSpend(base, token, positionals, flags) {
   if (status === 429) {
     process.stderr.write(
       `${data.dry ? '[dry] would not fit — ' : ''}OVER CAP — asked ${fmt(data.asked)}, spent ${fmt(data.spent)} of ${fmt(data.cap)} ${data.unit} this ${data.period}.\n` +
-      `raise it: ${data.raise}\n`
+      `raise it: ${data.raise}\n` +
+      (data.hint ? `hint: ${data.hint}\n` : '')
     );
     process.exitCode = 2;
     return;
@@ -229,6 +230,7 @@ function requireTopic(topic) {
 
 function fail(status, data) {
   process.stderr.write(`meter: ${data.error || 'request failed'} (${data.code || status})\n`);
+  if (data.hint) process.stderr.write(`hint: ${data.hint}\n`);
   process.exitCode = 1;
 }
 

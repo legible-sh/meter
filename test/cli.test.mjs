@@ -39,6 +39,7 @@ test('cap, spend, status, raise, log — the full loop, correct exit codes', asy
     assert.equal(over.code, 2, 'over cap exits 2 — the hook contract');
     assert.match(over.stderr, /OVER CAP/);
     assert.match(over.stderr, /raise it: /);
+    assert.match(over.stderr, /hint: stop/, 'the server hint reaches the terminal');
 
     const status = await run(['status', 'cli-t', '--url', url]);
     assert.equal(status.code, 0);
@@ -78,6 +79,7 @@ test('METER_URL env is respected; --token is sent', async () => {
     const denied = await run(['cap', 'guarded', '10'], { METER_URL: url });
     assert.equal(denied.code, 1);
     assert.match(denied.stderr, /unauthorized/);
+    assert.match(denied.stderr, /hint: resend with/, 'the server hint reaches the terminal');
 
     const ok = await run(['cap', 'guarded', '10', '--token', 'hunter2'], { METER_URL: url });
     assert.equal(ok.code, 0, ok.stderr);

@@ -24,6 +24,7 @@ import { statusPage } from './page.mjs';
 import {
   MAX_BODY_BYTES,
   MAX_LOG_ENTRIES,
+  MAX_NOTE_LENGTH,
   MAX_WAIT_SECONDS,
   SSE_HEARTBEAT_MS,
   TOPIC_PATTERN,
@@ -77,7 +78,10 @@ async function route(req, res, ctx) {
   }
 
   const match = url.pathname.match(/^\/([^/]+)(?:\/([^/]+))?$/);
-  if (!match) throw apiError(404, 'not_found', 'no such route');
+  if (!match) {
+    throw apiError(404, 'not_found', 'no such route',
+      'paths are /{topic} and /{topic}/{spend|raise|log|sse} — nothing nests deeper');
+  }
   const [, name, sub] = match;
   if (!TOPIC_PATTERN.test(name)) {
     throw apiError(400, 'bad_topic', 'topic must match [a-zA-Z0-9_-]{1,64}');
@@ -88,25 +92,36 @@ async function route(req, res, ctx) {
   if (sub === undefined) {
     if (req.method === 'PUT') return putConfig(req, res, ctx, name, url);
     if (req.method === 'GET') return getTopic(req, res, ctx, name, url);
-    throw apiError(405, 'method_not_allowed', 'use GET (status) or PUT (config) on /{topic}');
+    throw apiError(405, 'method_not_allowed', 'use GET (status) or PUT (config) on /{topic}',
+      'to spend, POST a number to /{topic}/spend; to set the cap, PUT {"cap": 50, "period": "day"} to /{topic}');
   }
   if (sub === 'spend') {
-    if (req.method !== 'POST') throw apiError(405, 'method_not_allowed', 'use POST on /{topic}/spend');
+    if (req.method !== 'POST') {
+      throw apiError(405, 'method_not_allowed', 'use POST on /{topic}/spend',
+        'POST a number (or {"amount": n, "note": "..."}) to /{topic}/spend — status is GET /{topic}');
+    }
     return postSpend(req, res, ctx, name, url, base);
   }
   if (sub === 'raise') {
-    if (req.method !== 'POST') throw apiError(405, 'method_not_allowed', 'use POST on /{topic}/raise');
+    if (req.method !== 'POST') {
+      throw apiError(405, 'method_not_allowed', 'use POST on /{topic}/raise',
+        'POST {"by": 10} or {"to": 100} to /{topic}/raise — query params work too: ?by=10');
+    }
     return postRaise(req, res, ctx, name, url);
   }
   if (sub === 'log') {
-    if (req.method !== 'GET') throw apiError(405, 'method_not_allowed', 'use GET on /{topic}/log');
+    if (req.method !== 'GET') {
+      throw apiError(405, 'method_not_allowed', 'use GET on /{topic}/log',
+        'the log is read-only — entries come from POST /{topic}/spend (add a "note" to label them)');
+    }
     return getLog(req, res, ctx, name, url);
   }
   if (sub === 'sse') {
     if (req.method !== 'GET') throw apiError(405, 'method_not_allowed', 'use GET on /{topic}/sse');
     return getSse(req, res, ctx, name);
   }
-  throw apiError(404, 'not_found', 'no such route — subresources are: spend, raise, log, sse');
+  throw apiError(404, 'not_found', 'no such route — subresources are: spend, raise, log, sse',
+    'spend and raise take POST; log and sse take GET — status is GET /{topic}');
 }
 
 // --- handlers ---------------------------------------------------------------
@@ -137,12 +152,19 @@ async function postSpend(req, res, ctx, name, url, base) {
       ...(dry ? { dry: true, committed: false } : {}),
     });
   }
+  const raiseUrl = `${base}/${name}`;
+  if (st.resets) {
+    res.setHeader('retry-after', String(Math.max(1, Math.ceil((Date.parse(st.resets) - Date.now()) / 1000))));
+  }
   sendJson(res, 429, {
     error: 'cap exceeded',
     code: 'over_cap',
     ...st,
     asked: amount,
-    raise: `${base}/${name}`,
+    raise: raiseUrl,
+    hint: st.resets
+      ? `stop — report ${raiseUrl} to a human or wait for the ${st.period} reset at ${st.resets} (Retry-After has the seconds); watch remaining with GET ${raiseUrl}?wait=30`
+      : `stop — a total cap never resets; report ${raiseUrl} to a human (raising is POST {"by": n} to ${raiseUrl}/raise); watch remaining with GET ${raiseUrl}?wait=30`,
     ...(dry ? { dry: true } : {}),
   });
 }
@@ -159,10 +181,12 @@ async function putConfig(req, res, ctx, name, url) {
     try {
       parsed = JSON.parse(body);
     } catch {
-      throw apiError(400, 'bad_config', 'body must be JSON, e.g. {"cap": 50, "period": "day", "unit": "usd"}');
+      throw apiError(400, 'bad_config', 'body must be JSON, e.g. {"cap": 50, "period": "day", "unit": "usd"}',
+        'if quoting JSON is the problem, query params work too: PUT /{topic}?cap=50&period=day&unit=usd');
     }
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-      throw apiError(400, 'bad_config', 'body must be a JSON object');
+      throw apiError(400, 'bad_config', 'body must be a JSON object',
+        'e.g. {"cap": 50, "period": "day", "unit": "usd"} — or query params: PUT /{topic}?cap=50&period=day');
     }
     Object.assign(input, pick(parsed, ['cap', 'period', 'unit']));
   }
@@ -216,10 +240,12 @@ async function postRaise(req, res, ctx, name, url) {
     try {
       parsed = JSON.parse(body);
     } catch {
-      throw apiError(400, 'bad_raise', 'body must be JSON, e.g. {"by": 10} or {"to": 100}');
+      throw apiError(400, 'bad_raise', 'body must be JSON, e.g. {"by": 10} or {"to": 100}',
+        'if quoting JSON is the problem, query params work too: POST /{topic}/raise?by=10');
     }
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-      throw apiError(400, 'bad_raise', 'body must be a JSON object');
+      throw apiError(400, 'bad_raise', 'body must be a JSON object',
+        'e.g. {"by": 10} or {"to": 100} — or query params: POST /{topic}/raise?by=10');
     }
     Object.assign(input, pick(parsed, ['by', 'to']));
   }
@@ -262,7 +288,8 @@ function requireToken(req, ctx) {
   if (!ctx.token) return;
   const header = req.headers.authorization || '';
   if (header !== `Bearer ${ctx.token}`) {
-    throw apiError(401, 'unauthorized', 'this server requires Authorization: Bearer <token> for config and raise');
+    throw apiError(401, 'unauthorized', 'this server requires Authorization: Bearer <token> for config and raise',
+      'resend with -H "Authorization: Bearer <token>" (CLI: --token or METER_TOKEN) — spend, status, and log never need it');
   }
 }
 
@@ -278,7 +305,8 @@ function readBody(req) {
         settled = true;
         req.removeAllListeners('data');
         req.resume(); // drain the rest so the response can flush
-        reject(apiError(413, 'too_large', `body must be at most ${MAX_BODY_BYTES} bytes`));
+        reject(apiError(413, 'too_large', `body must be at most ${MAX_BODY_BYTES} bytes`,
+          `send just the number, or trim the note — notes truncate at ${MAX_NOTE_LENGTH} chars anyway`));
         return;
       }
       chunks.push(chunk);
@@ -323,5 +351,5 @@ function sendError(res, err) {
   const code = err.code ?? 'internal';
   if (status === 500) console.error(err);
   if (res.headersSent) return void res.end();
-  sendJson(res, status, { error: err.message || 'internal error', code });
+  sendJson(res, status, { error: err.message || 'internal error', code, ...(err.hint ? { hint: err.hint } : {}) });
 }

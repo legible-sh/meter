@@ -12,6 +12,8 @@ test('with --token: PUT and raise are guarded', async () => {
     const noToken = await req(`${url}/t?cap=50`, { method: 'PUT' });
     assert.equal(noToken.status, 401);
     assert.equal(noToken.body.code, 'unauthorized');
+    assert.match(noToken.body.hint, /Authorization: Bearer/, '401 hint shows the header to resend with');
+    assert.match(noToken.body.hint, /never need/, '401 hint says spend stays open');
 
     const wrongToken = await req(`${url}/t?cap=50`, { method: 'PUT', headers: { authorization: 'Bearer nope' } });
     assert.equal(wrongToken.status, 401);

@@ -2,7 +2,7 @@
 
 ## Project state
 
-meter is complete and tested: a zero-dependency Node (>= 20, ESM) HTTP server + CLI implementing a fleet-shared budget counter. All documented endpoints exist; all README examples work as written against a local instance. 42 test cases (233 assertions) pass with `npm test`. Default port 4187 (part of the ten-sibling legible family; see README footer).
+meter is complete and tested: a zero-dependency Node (>= 20, ESM) HTTP server + CLI implementing a fleet-shared budget counter. All documented endpoints exist; all README examples work as written against a local instance. 43 test cases (250 assertions) pass with `npm test`. Default port 4187 (part of the ten-sibling legible family; see README footer).
 
 ## Important files
 
@@ -33,7 +33,7 @@ meter is complete and tested: a zero-dependency Node (>= 20, ESM) HTTP server + 
 ## Verification commands
 
 ```sh
-npm test                                  # 42 tests, all green, no network needed
+npm test                                  # 43 tests, all green, no network needed
 node bin/meter.mjs serve                  # boots on 4187
 bash examples/walkthrough.sh              # against a running local server
 node bin/meter.mjs hook demo --url http://127.0.0.1:4187 | python3 -m json.tool
@@ -64,4 +64,4 @@ open http://127.0.0.1:4187/t                          # live status page
 - Never make `/spend` token-guarded — a brake agents can't reach without keys is a brake that doesn't get checked.
 - Keep the store single-process-atomic; do not add clustering/replication (see CONCEPT.md "single-instance semantics").
 - If you touch period logic, preserve: lazy rollover on every read/write, replay-time rollover from event timestamps, and the UTC-boundary contract in the README.
-- The 429 body shape (`spent`, `cap`, `asked`, `raise`) is load-bearing — the hook, loop-guard, CLI exit-2 path, and status page all consume it.
+- The 429 body shape (`spent`, `cap`, `asked`, `raise`) is load-bearing — the hook, loop-guard, CLI exit-2 path, and status page all consume it. Error bodies are `{error, code, hint?}` (`hint` = the correct next request; additive, never replaces `error`/`code`), and 429s set `Retry-After` when the period resets on its own.

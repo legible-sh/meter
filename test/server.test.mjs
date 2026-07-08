@@ -38,6 +38,10 @@ test('cap enforcement: 200 under, 429 over, nothing committed on deny', async ()
     assert.equal(denied.body.spent, 6);
     assert.equal(denied.body.cap, 10);
     assert.ok(denied.body.raise.endsWith('/t2'), `raise URL points at the topic page: ${denied.body.raise}`);
+    assert.match(denied.body.hint, /stop/, '429 hint says to stop');
+    assert.match(denied.body.hint, /reset at \d{4}-/, '429 hint names the reset time');
+    assert.match(denied.body.hint, /\/t2\?wait=/, '429 hint shows how to watch remaining');
+    assert.ok(Number(denied.headers.get('retry-after')) >= 1, '429 carries Retry-After seconds until the reset');
 
     const st = await req(`${url}/t2`);
     assert.equal(st.body.spent, 6, '429 committed nothing');
@@ -171,7 +175,7 @@ test('log: newest first, limit respected, denied spends included', async () => {
   }
 });
 
-test('errors are JSON {error, code} with correct statuses', async () => {
+test('errors are JSON {error, code, hint} with correct statuses', async () => {
   const { url, close } = await boot();
   try {
     const badTopic = await req(`${url}/${'x'.repeat(65)}`, { method: 'GET' });
@@ -181,6 +185,7 @@ test('errors are JSON {error, code} with correct statuses', async () => {
     const badAmount = await req(`${url}/t/spend`, { method: 'POST', body: 'abc' });
     assert.equal(badAmount.status, 400);
     assert.equal(badAmount.body.code, 'bad_amount');
+    assert.match(badAmount.body.hint, /"amount"/, 'bad_amount hint shows a working body');
 
     const zero = await req(`${url}/t/spend`, { method: 'POST', body: '0' });
     assert.equal(zero.status, 400);
@@ -188,17 +193,21 @@ test('errors are JSON {error, code} with correct statuses', async () => {
     const tooBig = await req(`${url}/t/spend`, { method: 'POST', body: 'x'.repeat(MAX_BODY_BYTES + 1000) });
     assert.equal(tooBig.status, 413);
     assert.equal(tooBig.body.code, 'too_large');
+    assert.match(tooBig.body.hint, /note/, 'too_large hint says what to trim');
 
     const wrongMethod = await req(`${url}/t/spend`, { method: 'GET' });
     assert.equal(wrongMethod.status, 405);
     assert.equal(wrongMethod.body.code, 'method_not_allowed');
+    assert.match(wrongMethod.body.hint, /GET \/\{topic\}/, '405 hint redirects a status-seeker to GET /{topic}');
 
     const postTopic = await req(`${url}/t`, { method: 'POST', body: '1' });
     assert.equal(postTopic.status, 405);
+    assert.match(postTopic.body.hint, /\/\{topic\}\/spend/, '405 hint redirects a spender to /{topic}/spend');
 
     const unknownSub = await req(`${url}/t/unknown`);
     assert.equal(unknownSub.status, 404);
     assert.equal(unknownSub.body.code, 'not_found');
+    assert.match(unknownSub.body.hint, /spend and raise take POST/, '404 hint pairs subresources with methods');
 
     const deepPath = await req(`${url}/a/b/c`);
     assert.equal(deepPath.status, 404);
@@ -241,6 +250,20 @@ test('--base-url is used for raise URLs in 429s', async () => {
     await req(`${url}/tb?cap=1`, { method: 'PUT' });
     const denied = await req(`${url}/tb/spend`, { method: 'POST', body: '2' });
     assert.equal(denied.body.raise, 'https://meter.example.com/tb');
+  } finally {
+    await close();
+  }
+});
+
+test('429 on a total cap: no Retry-After, hint says the cap never resets', async () => {
+  const { url, close } = await boot();
+  try {
+    await req(`${url}/tt?cap=1&period=total`, { method: 'PUT' });
+    const denied = await req(`${url}/tt/spend`, { method: 'POST', body: '2' });
+    assert.equal(denied.status, 429);
+    assert.equal(denied.headers.get('retry-after'), null, 'total caps have no reset to wait for');
+    assert.match(denied.body.hint, /never resets/);
+    assert.match(denied.body.hint, /\/tt\/raise/, 'hint shows the raise call shape');
   } finally {
     await close();
   }
