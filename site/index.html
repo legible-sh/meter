@@ -135,19 +135,19 @@ npx meter-sh serve --token s3cret       <span class="c"># guard cap/raise</span>
 </section>
 
 <section class="wrap">
-  <h2><span class="n">07</span>The family</h2>
-  <p>meter is one of the legible primitives. Same stack, same idioms, one curl each.</p>
+  <h2><span class="n">07</span>More primitives</h2>
+  <p>The Legible catalog: one focused HTTP primitive per job.</p>
   <table class="family">
-    <tr><td>gate</td><td>4180</td><td>ntfy tells you things. gate asks you things.</td></tr>
-    <tr><td>bigred</td><td>4181</td><td>The big red button for your agent fleet.</td></tr>
-    <tr><td>trail</td><td>4182</td><td>The flight recorder for agent runs.</td></tr>
-    <tr><td>slate</td><td>4183</td><td>The blackboard from the multi-agent papers, as a URL.</td></tr>
-    <tr><td>relay</td><td>4184</td><td>The work queue your agents can provision themselves.</td></tr>
-    <tr><td>mutex</td><td>4185</td><td>flock(1) for agents that live on different machines.</td></tr>
-    <tr><td>quorum</td><td>4186</td><td>Coordination for agents that do not share a parent process.</td></tr>
-    <tr class="me"><td>meter</td><td>4187</td><td>The kill-brake for agent spend. 429-as-a-service.</td></tr>
-    <tr><td>stash</td><td>4188</td><td>ntfy moves signals. stash moves bytes.</td></tr>
-    <tr><td>tally</td><td>4189</td><td>StatHat reborn as ntfy. Three months too late — or right on time.</td></tr>
+    <tr><td><a href="https://gate.legible.sh">gate</a></td><td><a href="https://gate.legible.sh">ask</a></td><td>Human approval as a blocking request.</td></tr>
+    <tr><td><a href="https://bigred.legible.sh">bigred</a></td><td><a href="https://bigred.legible.sh">stop</a></td><td>A fail-safe kill switch for agent fleets.</td></tr>
+    <tr><td><a href="https://trail.legible.sh">trail</a></td><td><a href="https://trail.legible.sh">log</a></td><td>A durable, multi-writer run journal.</td></tr>
+    <tr><td><a href="https://slate.legible.sh">slate</a></td><td><a href="https://slate.legible.sh">share</a></td><td>Shared state with wait, watch, and compare-and-swap.</td></tr>
+    <tr><td><a href="https://relay.legible.sh">relay</a></td><td><a href="https://relay.legible.sh">queue</a></td><td>A work queue agents can create themselves.</td></tr>
+    <tr><td><a href="https://mutex.legible.sh">mutex</a></td><td><a href="https://mutex.legible.sh">lock</a></td><td>Leased locks and semaphores across machines.</td></tr>
+    <tr><td><a href="https://quorum.legible.sh">quorum</a></td><td><a href="https://quorum.legible.sh">decide</a></td><td>Elections, barriers, and votes over HTTP.</td></tr>
+    <tr class="me"><td><a href="https://meter.legible.sh">meter</a></td><td><a href="https://meter.legible.sh">cap</a></td><td>A shared budget brake that returns 429.</td></tr>
+    <tr><td><a href="https://stash.legible.sh">stash</a></td><td><a href="https://stash.legible.sh">move</a></td><td>A topic-addressed mailbox for files.</td></tr>
+    <tr><td><a href="https://tally.legible.sh">tally</a></td><td><a href="https://tally.legible.sh">count</a></td><td>Counters with history and live charts.</td></tr>
   </table>
 </section>
 
