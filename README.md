@@ -19,7 +19,7 @@ curl -X POST -d 2.50 https://meter.legible.sh/acme-fleet-x7k2/spend
 # 200 → proceed · 429 → stop (the body carries a raise URL for your phone)
 ```
 
-> meter.legible.sh isn't live yet. Everything in this README works today against your own instance: `npx meter-sh serve`, then swap `https://meter.legible.sh` for `http://localhost:4187`.
+> The hosted API at meter.legible.sh is in soft launch. To run the identical API yourself: `npx meter-sh serve`, then swap `https://meter.legible.sh` for `http://localhost:4187`.
 
 ## Make Claude Code obey it
 
