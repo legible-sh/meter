@@ -5,6 +5,14 @@
   "type": "module",
   "license": "MIT",
   "author": "Myles Krecny",
+  "homepage": "https://meter.legible.sh",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/legible-sh/meter.git"
+  },
+  "bugs": {
+    "url": "https://github.com/legible-sh/meter/issues"
+  },
   "bin": {
     "meter": "bin/meter.mjs"
   },
@@ -20,10 +28,7 @@
     "bin",
     "src",
     "examples",
-    "site",
     "README.md",
-    "CONCEPT.md",
-    "AGENTS.md",
     "LICENSE"
   ],
   "keywords": [
